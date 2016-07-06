@@ -914,9 +914,18 @@ public class PersistentResource<T> implements com.yahoo.elide.security.Persisten
 
         /* If elide was configured for Elide 3.0 data store interface */
         if (requestScope.useFilterExpressions()) {
-            val = requestScope.getTransaction()
-                    .getRelation(obj, type, relationName, relationClass, dictionary,
-                            filterExpression, requestScope.getSorting(), requestScope.getPagination());
+            String path = requestScope.getPath();
+            String relationNameForSortAndPage = path.substring(path.lastIndexOf("/") + 1);
+            if (relationName.equals(relationNameForSortAndPage)) {
+                val = requestScope.getTransaction()
+                        .getRelation(obj, type, relationName, relationClass, dictionary,
+                                filterExpression, requestScope.getSorting(), requestScope.getPagination());
+            } else {
+                val = requestScope.getTransaction()
+                        .getRelation(obj, type, relationName, relationClass, dictionary,
+                                filterExpression, null, null);
+            }
+
 
         /* Otherwise use the Elide 2.0 interface */
         } else {
@@ -964,11 +973,19 @@ public class PersistentResource<T> implements com.yahoo.elide.security.Persisten
 
         Object val;
 
+        String path = requestScope.getPath();
+        String relationNameForSortAndPage = path.substring(path.lastIndexOf("/") + 1);
         /* If elide was configured for Elide 3.0 data store interface */
         if (requestScope.useFilterExpressions()) {
-            val = requestScope.getTransaction()
-                   .getRelation(obj, type, relationName, relationClass, dictionary,
-                           filterExpression, requestScope.getSorting(), requestScope.getPagination());
+            if (relationName.equals(relationNameForSortAndPage)) {
+                val = requestScope.getTransaction()
+                        .getRelation(obj, type, relationName, relationClass, dictionary,
+                                filterExpression, requestScope.getSorting(), requestScope.getPagination());
+            } else {
+                val = requestScope.getTransaction()
+                        .getRelation(obj, type, relationName, relationClass, dictionary,
+                                filterExpression, null, null);
+            }
 
         /* Otherwise use the Elide 2.0 interface */
         } else {
@@ -980,9 +997,16 @@ public class PersistentResource<T> implements com.yahoo.elide.security.Persisten
             } else {
                 filters = Collections.emptySet();
             }
-            val = requestScope.getTransaction()
-                    .getRelationWithSortingAndPagination(obj, type, relationName, relationClass, dictionary, filters,
-                            requestScope.getSorting(), requestScope.getPagination());
+            if (relationName.equals(relationNameForSortAndPage)) {
+                val = requestScope.getTransaction()
+                        .getRelationWithSortingAndPagination(obj, type, relationName, relationClass, dictionary,
+                                filters, requestScope.getSorting(), requestScope.getPagination());
+            } else {
+                val = requestScope.getTransaction()
+                        .getRelationWithSortingAndPagination(obj, type, relationName, relationClass, dictionary,
+                                filters, null, null);
+            }
+
         }
 
         if (val == null) {

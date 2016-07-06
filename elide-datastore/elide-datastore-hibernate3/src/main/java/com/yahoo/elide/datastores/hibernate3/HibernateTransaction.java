@@ -206,10 +206,10 @@ public class HibernateTransaction implements RequestScopedTransaction {
 
         final Pagination pagination = filterScope.hasPagination()
                 ? filterScope.getRequestScope().getPagination()
-                : null;
+                : Pagination.getDefaultPagination();
 
         // if we have sorting and sorting isn't empty, then we should pull dictionary to validate the sorting rules
-        Set<Order> validatedSortingRules = null;
+        List<Order> validatedSortingRules = null;
         if (filterScope.hasSortingRules()) {
             final Sorting sorting = filterScope.getRequestScope().getSorting();
             final EntityDictionary dictionary = filterScope.getRequestScope().getDictionary();
@@ -219,7 +219,7 @@ public class HibernateTransaction implements RequestScopedTransaction {
                             ? Order.desc(entry.getKey())
                             : Order.asc(entry.getKey())
                     )
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toList());
         }
 
         return loadObjects(
@@ -239,7 +239,7 @@ public class HibernateTransaction implements RequestScopedTransaction {
      * @return The Iterable for Hibernate.
      */
     public <T> Iterable<T> loadObjects(final Class<T> loadClass, final Criteria criteria,
-            final Optional<Set<Order>> sortingRules, final Optional<Pagination> pagination) {
+            final Optional<List<Order>> sortingRules, final Optional<Pagination> pagination) {
 
         if (sortingRules.isPresent()) {
             sortingRules.get().forEach(criteria::addOrder);
@@ -378,14 +378,11 @@ public class HibernateTransaction implements RequestScopedTransaction {
         Object val = com.yahoo.elide.core.PersistentResource.getValue(entity, relationName, dictionary);
         if (val instanceof Collection) {
             Collection filteredVal = (Collection) val;
-            // sorting/pagination supported on last entity only eg /v1/author/1/books? books would be valid
-            final boolean hasSortRules = sorting.isDefaultInstance();
-            final boolean isPaginated = pagination.isDefaultInstance();
 
-            if ((filterExpression.isPresent() || hasSortRules || isPaginated)
-                    && (filteredVal instanceof AbstractPersistentCollection)) {
-                final Optional<Sorting> sortingRules = hasSortRules ? Optional.of(sorting) : Optional.empty();
-                final Optional<Pagination> paginationRules = isPaginated ? Optional.of(pagination) : Optional.empty();
+            // sorting/pagination supported on last entity only eg /v1/author/1/books? books would be valid
+            if (filteredVal instanceof AbstractPersistentCollection) {
+                Optional<Sorting> sortingRules = sorting != null ? Optional.of(sorting) : Optional.empty();
+                Optional<Pagination> paginationRules = pagination != null ? Optional.of(pagination) : Optional.empty();
 
                 @SuppressWarnings("unchecked")
                 final Optional<Query> possibleQuery = new HQLTransaction.Builder<>(session, filteredVal, relationClass,
@@ -397,10 +394,8 @@ public class HibernateTransaction implements RequestScopedTransaction {
                 if (possibleQuery.isPresent()) {
                     return possibleQuery.get().list();
                 }
-
             }
         }
-
         return val;
     }
 

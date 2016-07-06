@@ -129,7 +129,7 @@ public class HQLTransaction {
             }
 
             // add sorting into HQL string query generation
-            if (!sortingRules.isEmpty()) {
+            if (sortingRules != null && !sortingRules.isEmpty()) {
                 filterString += sortingRules;
             }
 
